@@ -1,0 +1,6 @@
+/vendor/
+/build/
+.env
+.idea
+.phpunit.cache/
+
