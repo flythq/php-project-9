@@ -1,15 +1,21 @@
 <?php
 
+declare(strict_types=1);
+
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use Slim\Factory\AppFactory;
 use Slim\Middleware\MethodOverrideMiddleware;
 use DI\Container;
+use Slim\Views\Twig;
+use Slim\Views\TwigMiddleware;
+
+require_once __DIR__ . '/../vendor/autoload.php';
 
 $container = new Container();
 
-$container->set('renderer', function () {
-    return new \Slim\Views\PhpRenderer(__DIR__ . '/../templates');
+$container->set(Twig::class, function () {
+    return Twig::create(__DIR__ . '/../templates', ['cache' => false]);
 });
 
 $container->set('flash', function () {
@@ -18,14 +24,18 @@ $container->set('flash', function () {
 
 $app = AppFactory::createFromContainer($container);
 
+$app->add(TwigMiddleware::create($app, $container->get(Twig::class)));
+
+$app->addRoutingMiddleware();
 $app->addErrorMiddleware(true, true, true);
-$app->add(MethodOverrideMiddleware::class);
 
-$router = $app->getRouteCollector()->getRouteParser();
 
-$app->get('/', function ($request, $response) {
 
-    return $response->write('Привет, мир!');
+$app->get('/', function ($request, $response) use ($container) {
+
+    $twig = $container->get(Twig::class);
+
+    return $twig->render($response, 'layout.html.twig');
 });
 
 $app->run();
