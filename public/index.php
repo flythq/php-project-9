@@ -155,4 +155,21 @@ $app->get('/urls/{id}', function ($request, $response, $args) use ($conn) {
     return $this->get('renderer')->render($response, 'url.phtml', $data);
 })->setName('urls.show');
 
+$app->post('/urls/{id:[0-9]+}/checks', function ($request, $response, $args) use ($router, $conn) {
+    $urlId = (int)$args['id'];
+    $sql = "SELECT id, name, to_char(created_at, 'YYYY-MM-DD HH24:MI:SS TZ') as created_at
+            FROM urls
+            WHERE id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->execute([$urlId]);
+    $url =  $stmt->fetch(PDO::FETCH_ASSOC);
+    $redirectUrl = $router->urlFor('urls.show', ['id' => $urlId]);
+
+    ($url === []) ?
+        $this->get('flash')->addMessage('warning', 'Произошла ошибка при проверке, не удалось подключиться') :
+        $this->get('flash')->addMessage('success', 'Страница успешно проверена');
+
+    return $response->withHeader('Location', $redirectUrl)->withStatus(302);
+})->setName('urls.check');
+
 $app->run();
