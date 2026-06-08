@@ -40,22 +40,22 @@ $app->add(MethodOverrideMiddleware::class);
 
 $router = $app->getRouteCollector()->getRouteParser();
 
-$app->get('/', function ($request, $response) {
-    $messages = $this->get('flash')->getMessages();
+$app->get('/', function ($request, $response) use ($container) {
+    $messages = $container->get('flash')->getMessages();
     $params = [
         'flash' => $messages ?? []
     ];
-    return $this->get('renderer')->render($response, 'index.phtml', $params);
+    return $container->get('renderer')->render($response, 'index.phtml', $params);
 })->setName('index');
 
-$app->get('/urls', function ($request, $response) use ($conn) {
+$app->get('/urls', function ($request, $response) use ($conn, $container) {
     $urlsData = Url::getAll($conn);
     $params = ['urlsData' => $urlsData];
 
-    return $this->get('renderer')->render($response, 'urls.phtml', $params);
+    return $container->get('renderer')->render($response, 'urls.phtml', $params);
 })->setName('urls.index');
 
-$app->post('/urls', function ($request, $response) use ($router, $conn) {
+$app->post('/urls', function ($request, $response) use ($router, $conn, $container) {
     $params = $request->getParsedBody();
     $urlName = trim($params['url']);
 
@@ -70,7 +70,7 @@ $app->post('/urls', function ($request, $response) use ($router, $conn) {
     if (!$validator->validate()) {
         $errors = $validator->errors('url');
         $error = $errors[0] ?? null;
-        return $this->get('renderer')->render($response, 'index.phtml', ['error' => $error])->withStatus(422);
+        return $container->get('renderer')->render($response, 'index.phtml', ['error' => $error])->withStatus(422);
     }
 
     $parsedUrl = parse_url($urlName);
@@ -79,7 +79,7 @@ $app->post('/urls', function ($request, $response) use ($router, $conn) {
 
     if (!empty($urlData)) {
         $redirectUrl = $router->urlFor('urls.show', ['id' => $urlData['id']]);
-        $this->get('flash')->addMessage('success', 'Страница уже существует');
+        $container->get('flash')->addMessage('success', 'Страница уже существует');
         return $response->withHeader('Location', $redirectUrl)->withStatus(302);
     }
 
@@ -90,11 +90,11 @@ $app->post('/urls', function ($request, $response) use ($router, $conn) {
     );
 
     $redirectUrl = $router->urlFor('urls.show', ['id' => $id]);
-    $this->get('flash')->addMessage('success', 'Страница успешно добавлена');
+    $container->get('flash')->addMessage('success', 'Страница успешно добавлена');
     return $response->withHeader('Location', $redirectUrl)->withStatus(302);
 })->setName('urls.create');
 
-$app->get('/urls/{id}', function ($request, $response, $args) use ($conn) {
+$app->get('/urls/{id}', function ($request, $response, $args) use ($conn, $container) {
     $urlId = (int)$args['id'];
     $urlData = Url::getById($conn, $urlId);
 
@@ -108,7 +108,7 @@ $app->get('/urls/{id}', function ($request, $response, $args) use ($conn) {
         return $check;
     }, $urlCheckData);
 
-    $flash = $this->get('flash')->getMessages();
+    $flash = $container->get('flash')->getMessages();
 
 
     $data = [
@@ -116,10 +116,10 @@ $app->get('/urls/{id}', function ($request, $response, $args) use ($conn) {
         'urlCheckData' => $urlCheckData,
         'flash' => $flash,
     ];
-    return $this->get('renderer')->render($response, 'url.phtml', $data);
+    return $container->get('renderer')->render($response, 'url.phtml', $data);
 })->setName('urls.show');
 
-$app->post('/urls/{id:[0-9]+}/checks', function ($request, $response, $args) use ($router, $conn) {
+$app->post('/urls/{id:[0-9]+}/checks', function ($request, $response, $args) use ($router, $conn, $container) {
     $urlId = (int)$args['id'];
     $url = Url::getById($conn, $urlId);
 
@@ -140,9 +140,9 @@ $app->post('/urls/{id:[0-9]+}/checks', function ($request, $response, $args) use
             Carbon::now()->toDateTimeString()
         );
 
-        $this->get('flash')->addMessage('success', 'Страница успешно проверена');
+        $container->get('flash')->addMessage('success', 'Страница успешно проверена');
     } catch (\GuzzleHttp\Exception\GuzzleException $e) {
-        $this->get('flash')->addMessage('danger', 'Произошла ошибка при проверке');
+        $container->get('flash')->addMessage('danger', 'Произошла ошибка при проверке');
     }
 
     $redirectUrl = $router->urlFor('urls.show', ['id' => $urlId]);
