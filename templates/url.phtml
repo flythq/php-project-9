@@ -37,14 +37,16 @@
                 </tr>
                 </thead>
                 <tbody>
+                <?php foreach($urlCheckData as $urlCheck): ?>
                 <tr>
-                    <td><?= $urlData['id'] ?></td>
-                    <td>200</td>
+                    <td><?= $urlCheck['id'] ?></td>
+                    <td><?= $urlCheck['status_code'] ?></td>
                     <td>...</td>
                     <td>...</td>
                     <td>...</td>
-                    <td><?= $urlData['created_at'] ?></td>
+                    <td><?= $urlCheck['created_at'] ?></td>
                 </tr>
+                <?php endforeach; ?>
                 </tbody>
             </table>
         </div>

@@ -10,6 +10,7 @@ use Slim\Views\PhpRenderer;
 use Dotenv\Dotenv;
 use Valitron\Validator;
 use Illuminate\Support\Carbon;
+use GuzzleHttp\Client;
 
 const DEFAULT_DATABASE_PORT = '5432';
 
@@ -56,7 +57,6 @@ $conn->exec($sql);
 session_start();
 
 $container = new Container();
-$container->set(PDO::class, fn() => $conn);
 $container->set('flash', function () {
     return new Messages();
 });
@@ -80,7 +80,19 @@ $app->get('/', function ($request, $response) {
 })->setName('index');
 
 $app->get('/urls', function ($request, $response) use ($conn) {
-    $sql = "SELECT * FROM urls ORDER BY created_at DESC";
+    $sql = "SELECT
+            u.id,
+            u.name,
+            uc.status_code,
+            uc.created_at AS last_check_at
+            FROM urls u
+            LEFT JOIN (SELECT DISTINCT ON (url_id)
+            url_id,
+            status_code,
+            created_at
+            FROM url_checks
+            ORDER BY url_id, created_at DESC) uc ON uc.url_id = u.id
+            ORDER BY u.created_at DESC;";
     $stmt = $conn->query($sql);
 
     if ($stmt === false) {
@@ -89,6 +101,7 @@ $app->get('/urls', function ($request, $response) use ($conn) {
 
     $urlsData = $stmt->fetchAll(PDO::FETCH_ASSOC);
     $params = ['urlsData' => $urlsData];
+
     return $this->get('renderer')->render($response, 'urls.phtml', $params);
 })->setName('urls.index');
 
@@ -146,11 +159,25 @@ $app->get('/urls/{id}', function ($request, $response, $args) use ($conn) {
     $stmt = $conn->prepare($sql);
     $stmt->execute([$urlId]);
     $urlData =  $stmt->fetch(PDO::FETCH_ASSOC);
+
+    $sql = "SELECT *
+            FROM url_checks
+            WHERE url_id = ?
+            ORDER BY id DESC";
+    $stmt = $conn->prepare($sql);
+    $stmt->execute([$urlId]);
+    $urlCheckData =  $stmt->fetchAll(PDO::FETCH_ASSOC);
+
     $flash = $this->get('flash')->getMessages();
+
+    //var_dump($urlCheckData);
+    //die();
+
 
     $data = [
         'urlData' => $urlData,
-        'flash' => $flash
+        'urlCheckData' => $urlCheckData,
+        'flash' => $flash,
     ];
     return $this->get('renderer')->render($response, 'url.phtml', $data);
 })->setName('urls.show');
@@ -163,11 +190,31 @@ $app->post('/urls/{id:[0-9]+}/checks', function ($request, $response, $args) use
     $stmt = $conn->prepare($sql);
     $stmt->execute([$urlId]);
     $url =  $stmt->fetch(PDO::FETCH_ASSOC);
-    $redirectUrl = $router->urlFor('urls.show', ['id' => $urlId]);
 
-    ($url === []) ?
-        $this->get('flash')->addMessage('warning', 'Произошла ошибка при проверке, не удалось подключиться') :
+    if ($url === []) {
+        throw new InvalidArgumentException("Url with id {$urlId} not found");
+    }
+
+    try {
+        $client = new Client(['base_uri' => $url['name'], 'timeout'  => 2.0]);
+        $statusCode = $client->request('GET')->getStatusCode();
+
+        $sql = "INSERT INTO url_checks (url_id, status_code, created_at)
+                VALUES (:urlId, :statusCode, :createdAt)";
+
+        $stmt = $conn->prepare($sql);
+        $stmt->execute([
+            'urlId' => $urlId,
+            'statusCode' => $statusCode,
+            'createdAt' => Carbon::now()->toDateTimeString(),
+        ]);
+
         $this->get('flash')->addMessage('success', 'Страница успешно проверена');
+    } catch (\GuzzleHttp\Exception\GuzzleException $e) {
+        $this->get('flash')->addMessage('danger', 'Произошла ошибка при проверке');
+    }
+
+    $redirectUrl = $router->urlFor('urls.show', ['id' => $urlId]);
 
     return $response->withHeader('Location', $redirectUrl)->withStatus(302);
 })->setName('urls.check');

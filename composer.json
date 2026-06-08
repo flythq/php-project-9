@@ -25,7 +25,8 @@
       "vlucas/valitron": "^1.4",
       "nesbot/carbon": "^3.10",
       "illuminate/support": "^11.29",
-      "php-di/php-di": "^7.0"
+      "php-di/php-di": "^7.0",
+      "guzzlehttp/guzzle": "^7.11"
     },
     "require-dev": {
       "roave/security-advisories": "dev-latest",
