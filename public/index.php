@@ -3,14 +3,16 @@
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use DI\Container;
+use Dotenv\Dotenv;
+use GuzzleHttp\Client;
+use Illuminate\Support\Carbon;
 use Slim\Factory\AppFactory;
 use Slim\Flash\Messages;
 use Slim\Middleware\MethodOverrideMiddleware;
 use Slim\Views\PhpRenderer;
-use Dotenv\Dotenv;
+use Symfony\Component\DomCrawler\Crawler;
 use Valitron\Validator;
-use Illuminate\Support\Carbon;
-use GuzzleHttp\Client;
+use Hexlet\Code\Support\Text;
 
 const DEFAULT_DATABASE_PORT = '5432';
 
@@ -21,7 +23,7 @@ $dotenv->required(['DATABASE_URL'])->notEmpty();
 $params = parse_url($_ENV['DATABASE_URL']);
 
 if ($params === false) {
-    throw new InvalidArgumentException("Error reading database url.");
+    throw new InvalidArgumentException("Error reading database url");
 }
 
 $port = $params['port'] ?? DEFAULT_DATABASE_PORT;
@@ -49,7 +51,7 @@ $databaseFilePath = dirname(__DIR__) . '/database.sql';
 $sql = file_get_contents($databaseFilePath);
 
 if ($sql === false) {
-    throw new RuntimeException('Unable to read database file!');
+    throw new RuntimeException('Unable to read database file');
 }
 
 $conn->exec($sql);
@@ -65,7 +67,6 @@ $container->set('renderer', function () {
 });
 
 $app = AppFactory::createFromContainer($container);
-
 $app->addErrorMiddleware(true, true, true);
 $app->add(MethodOverrideMiddleware::class);
 
@@ -168,10 +169,15 @@ $app->get('/urls/{id}', function ($request, $response, $args) use ($conn) {
     $stmt->execute([$urlId]);
     $urlCheckData =  $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    $flash = $this->get('flash')->getMessages();
+    $urlCheckData = array_map(function ($check) {
+        $check['h1'] = Text::preview($check['h1']);
+        $check['title'] = Text::preview($check['title']);
+        $check['description'] = Text::preview($check['description']);
 
-    //var_dump($urlCheckData);
-    //die();
+        return $check;
+    }, $urlCheckData);
+
+    $flash = $this->get('flash')->getMessages();
 
 
     $data = [
@@ -197,15 +203,37 @@ $app->post('/urls/{id:[0-9]+}/checks', function ($request, $response, $args) use
 
     try {
         $client = new Client(['base_uri' => $url['name'], 'timeout'  => 2.0]);
-        $statusCode = $client->request('GET')->getStatusCode();
+        $response = $client->request('GET');
+        $statusCode = $response->getStatusCode();
+        $content = $response->getBody()->getContents();
 
-        $sql = "INSERT INTO url_checks (url_id, status_code, created_at)
-                VALUES (:urlId, :statusCode, :createdAt)";
+
+        $crawler = new Crawler($content);
+
+        $h1 = ($crawler->filter('h1')->count())
+            ? $crawler->filter('h1')->first()->text()
+            : null;
+
+        $title = ($crawler->filter('title')->count())
+            ? $crawler->filter('title')->first()->text()
+            : null;
+
+        $meta = $crawler->filter('meta[name="description"]');
+        $description = $meta->count()
+            ? $meta->attr('content')
+            : null;
+
+
+        $sql = "INSERT INTO url_checks (url_id, status_code, h1, title, description, created_at)
+                VALUES (:urlId, :statusCode, :h1, :title, :description, :createdAt)";
 
         $stmt = $conn->prepare($sql);
         $stmt->execute([
             'urlId' => $urlId,
             'statusCode' => $statusCode,
+            'h1' => $h1,
+            'title' => $title,
+            'description' => $description,
             'createdAt' => Carbon::now()->toDateTimeString(),
         ]);
 
