@@ -10,7 +10,7 @@ start:
 
 lint:
 	composer exec --verbose phpcs -- --standard=PSR12 src public
-	composer exec --verbose phpstan analyse --memory-limit=512M src public
+	composer exec --verbose phpstan -- analyse --memory-limit=512M src public
 
 lint-fix:
 	composer exec --verbose phpcbf -- --standard=PSR12 src public
