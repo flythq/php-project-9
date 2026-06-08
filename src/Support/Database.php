@@ -16,7 +16,7 @@ class Database
         $password = $params['pass'] ?? '';
         $name = ltrim($params['path'] ?? '', '/');
 
-        $dsn = "pgsql:host={$host};port={$port};dbname={$name};sslmode=require";
+        $dsn = "pgsql:host={$host};port={$port};dbname={$name}"; //sslmode=require
 
         return new PDO(
             $dsn,
