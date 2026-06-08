@@ -142,7 +142,7 @@ $app->post('/urls/{id:[0-9]+}/checks', function ($request, $response, $args) use
 
         $container->get('flash')->addMessage('success', 'Страница успешно проверена');
     } catch (\GuzzleHttp\Exception\GuzzleException $e) {
-        $container->get('flash')->addMessage('danger', 'Произошла ошибка при проверке');
+        $container->get('flash')->addMessage('danger', 'Произошла ошибка при проверке, не удалось подключиться');
     }
 
     $redirectUrl = $router->urlFor('urls.show', ['id' => $urlId]);

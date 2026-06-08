@@ -25,11 +25,11 @@
     </nav>
 </header>
 <?php if (!empty($flash)): ?>
-<?php foreach($flash as $flashType => $flashText): ?>
+    <?php foreach($flash as $flashType => $flashText): ?>
     <div class="alert alert-<?= $flashType ?> alert-dismissible fade show" role="alert">
-        <?= $flashText[0] ?>
-<?php endforeach; ?>
+        <?= is_array($flashText) ? $flashText[0] : $flashText ?>
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
+    <?php endforeach; ?>
 <?php endif; ?>
 
