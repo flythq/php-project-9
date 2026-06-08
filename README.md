@@ -4,6 +4,10 @@
 [![hexlet-check](https://github.com/flythq/php-project-9/actions/workflows/hexlet-check.yml/badge.svg)](https://github.com/flythq/php-project-9/actions/workflows/hexlet-check.yml)
 [![check](https://github.com/flythq/php-project-9/actions/workflows/check.yml/badge.svg)](https://github.com/flythq/php-project-9/actions/workflows/check.yml)
 
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=flythq_php-project-92&metric=bugs)](https://sonarcloud.io/summary/new_code?id=flythq_php-project-92)
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=flythq_php-project-92&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=flythq_php-project-92)
+[![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=flythq_php-project-92&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=flythq_php-project-92)
+
 ## About
 
 This is a site that analyzes the specified pages for SEO suitability
