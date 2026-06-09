@@ -15,6 +15,8 @@ use Hexlet\Code\Support\Text;
 use Hexlet\Code\Support\Database;
 use Hexlet\Code\Support\Url;
 use Hexlet\Code\Support\UrlCheck;
+use Hexlet\Code\Support\TableCreator;
+use Hexlet\Code\Support\HttpErrorHandler;
 
 
 $dotenv = Dotenv::createImmutable(dirname(__DIR__));
@@ -22,7 +24,7 @@ $dotenv->safeLoad();
 $dotenv->required(['DATABASE_URL'])->notEmpty();
 
 $conn = Database::connect();
-\Hexlet\Code\Support\TableCreator::run($conn);
+TableCreator::run($conn);
 
 session_start();
 
@@ -33,29 +35,41 @@ $container->set('flash', function () {
 $container->set('renderer', function () {
     return new PhpRenderer(__DIR__ . '/../templates');
 });
+$container->set(PDO::class, fn() => $conn);
 
 $app = AppFactory::createFromContainer($container);
-$app->addErrorMiddleware(true, true, true);
+
+$callableResolver = $app->getCallableResolver();
+$responseFactory = $app->getResponseFactory();
+
+$httpErrorHandler = new HttpErrorHandler(
+    $callableResolver,
+    $responseFactory,
+    $container->get('renderer')
+);
+
+$app->addRoutingMiddleware();
+$errorMiddleware = $app->addErrorMiddleware(true, true, true);
+$errorMiddleware->setDefaultErrorHandler($httpErrorHandler);
+
 $app->add(MethodOverrideMiddleware::class);
 
 $router = $app->getRouteCollector()->getRouteParser();
 
 $app->get('/', function ($request, $response) use ($container) {
     $messages = $container->get('flash')->getMessages();
-    $params = [
-        'flash' => $messages ?? []
-    ];
+    $params = ['flash' => $messages ?? []];
     return $container->get('renderer')->render($response, 'index.phtml', $params);
 })->setName('index');
 
-$app->get('/urls', function ($request, $response) use ($conn, $container) {
-    $urlsData = Url::getAll($conn);
+$app->get('/urls', function ($request, $response) use ($container) {
+    $urlsData = Url::getAll($container->get(PDO::class));
     $params = ['urlsData' => $urlsData];
 
     return $container->get('renderer')->render($response, 'urls.phtml', $params);
 })->setName('urls.index');
 
-$app->post('/urls', function ($request, $response) use ($router, $conn, $container) {
+$app->post('/urls', function ($request, $response) use ($router, $container) {
     $params = $request->getParsedBody();
     $urlName = trim($params['url']);
 
@@ -83,7 +97,7 @@ $app->post('/urls', function ($request, $response) use ($router, $conn, $contain
     }
 
     $normalizedUrl = "{$parsedUrl['scheme']}://{$parsedUrl['host']}";
-    $urlData = Url::getByName($conn, $normalizedUrl);
+    $urlData = Url::getByName($container->get(PDO::class), $normalizedUrl);
 
     if (!empty($urlData)) {
         $redirectUrl = $router->urlFor('urls.show', ['id' => (string) $urlData['id']]);
@@ -92,7 +106,7 @@ $app->post('/urls', function ($request, $response) use ($router, $conn, $contain
     }
 
     $id = Url::create(
-        $conn,
+        $container->get(PDO::class),
         $normalizedUrl,
         Carbon::now()->toDateTimeString()
     );
@@ -102,11 +116,11 @@ $app->post('/urls', function ($request, $response) use ($router, $conn, $contain
     return $response->withHeader('Location', $redirectUrl)->withStatus(302);
 })->setName('urls.create');
 
-$app->get('/urls/{id}', function ($request, $response, $args) use ($conn, $container) {
+$app->get('/urls/{id}', function ($request, $response, $args) use ($container) {
     $urlId = (int)$args['id'];
-    $urlData = Url::getById($conn, $urlId);
+    $urlData = Url::getById($container->get(PDO::class), $urlId);
 
-    $urlCheckData = UrlCheck::getByUrlId($conn, $urlId);
+    $urlCheckData = UrlCheck::getByUrlId($container->get(PDO::class), $urlId);
 
     $urlCheckData = array_map(function ($check) {
         $check['h1'] = Text::preview($check['h1']);
@@ -117,19 +131,18 @@ $app->get('/urls/{id}', function ($request, $response, $args) use ($conn, $conta
     }, $urlCheckData);
 
     $flash = $container->get('flash')->getMessages();
-
-
     $data = [
         'urlData' => $urlData,
         'urlCheckData' => $urlCheckData,
         'flash' => $flash,
     ];
+
     return $container->get('renderer')->render($response, 'url.phtml', $data);
 })->setName('urls.show');
 
-$app->post('/urls/{id:[0-9]+}/checks', function ($request, $response, $args) use ($router, $conn, $container) {
+$app->post('/urls/{id:[0-9]+}/checks', function ($request, $response, $args) use ($router, $container) {
     $urlId = (int)$args['id'];
-    $url = Url::getById($conn, $urlId);
+    $url = Url::getById($container->get(PDO::class), $urlId);
 
     if (!$url) {
         throw new InvalidArgumentException("Url with id {$urlId} not found");
@@ -139,7 +152,7 @@ $app->post('/urls/{id:[0-9]+}/checks', function ($request, $response, $args) use
         $data = PageAnalyzer::analyze($url['name']);
 
         UrlCheck::create(
-            $conn,
+            $container->get(PDO::class),
             $urlId,
             $data['statusCode'],
             $data['h1'],
@@ -159,5 +172,3 @@ $app->post('/urls/{id:[0-9]+}/checks', function ($request, $response, $args) use
 })->setName('urls.check');
 
 $app->run();
-
-return $app;
