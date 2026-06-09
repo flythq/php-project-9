@@ -3,6 +3,7 @@
 namespace Hexlet\Code\Support;
 
 use PDO;
+use RuntimeException;
 
 class Url
 {
@@ -64,6 +65,10 @@ class Url
                 ORDER BY u.created_at DESC";
 
         $stmt = $conn->query($sql);
+
+        if ($stmt === false) {
+            throw new RuntimeException('Query failed');
+        }
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }

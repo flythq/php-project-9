@@ -74,11 +74,19 @@ $app->post('/urls', function ($request, $response) use ($router, $conn, $contain
     }
 
     $parsedUrl = parse_url($urlName);
+
+    if (
+        $parsedUrl === false ||
+        !isset($parsedUrl['scheme'], $parsedUrl['host'])
+    ) {
+        throw new InvalidArgumentException('Invalid URL');
+    }
+
     $normalizedUrl = "{$parsedUrl['scheme']}://{$parsedUrl['host']}";
     $urlData = Url::getByName($conn, $normalizedUrl);
 
     if (!empty($urlData)) {
-        $redirectUrl = $router->urlFor('urls.show', ['id' => $urlData['id']]);
+        $redirectUrl = $router->urlFor('urls.show', ['id' => (string) $urlData['id']]);
         $container->get('flash')->addMessage('success', 'Страница уже существует');
         return $response->withHeader('Location', $redirectUrl)->withStatus(302);
     }
@@ -89,7 +97,7 @@ $app->post('/urls', function ($request, $response) use ($router, $conn, $contain
         Carbon::now()->toDateTimeString()
     );
 
-    $redirectUrl = $router->urlFor('urls.show', ['id' => $id]);
+    $redirectUrl = $router->urlFor('urls.show', ['id' => (string) $id]);
     $container->get('flash')->addMessage('success', 'Страница успешно добавлена');
     return $response->withHeader('Location', $redirectUrl)->withStatus(302);
 })->setName('urls.create');
@@ -145,9 +153,11 @@ $app->post('/urls/{id:[0-9]+}/checks', function ($request, $response, $args) use
         $container->get('flash')->addMessage('danger', 'Произошла ошибка при проверке, не удалось подключиться');
     }
 
-    $redirectUrl = $router->urlFor('urls.show', ['id' => $urlId]);
+    $redirectUrl = $router->urlFor('urls.show', ['id' => (string) $urlId]);
 
     return $response->withHeader('Location', $redirectUrl)->withStatus(302);
 })->setName('urls.check');
 
 $app->run();
+
+return $app;
