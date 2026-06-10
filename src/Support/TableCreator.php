@@ -11,6 +11,7 @@ class TableCreator
     {
         $databaseFilePath = dirname(__DIR__, 2) . '/database.sql';
         $sql = file_get_contents($databaseFilePath);
+        //$sql = false;
 
         if ($sql === false) {
             throw new RuntimeException('Unable to read database file');

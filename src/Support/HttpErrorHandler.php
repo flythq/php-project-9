@@ -13,32 +13,26 @@ use Slim\Views\PhpRenderer;
 
 class HttpErrorHandler extends ErrorHandler
 {
-    private PhpRenderer $view;
-
     public function __construct(
         CallableResolverInterface $callableResolver,
-        ResponseFactoryInterface $responseFactory,
-        PhpRenderer $view
+        ResponseFactoryInterface $responseFactory
     ) {
-        $this->view = $view;
-
         parent::__construct($callableResolver, $responseFactory);
     }
 
     protected function respond(): ResponseInterface
     {
-        $exception = $this->exception;
+        $statusCode = $this->statusCode ?: 500;
 
-        $statusCode = 500;
-        $template = '500.phtml';
-
-        if ($exception instanceof HttpNotFoundException) {
-            $statusCode = 404;
-            $template = '404.phtml';
-        }
+        $template = match ($statusCode) {
+            404 => '404.phtml',
+            default => '500.phtml',
+        };
 
         $response = $this->responseFactory->createResponse($statusCode);
 
-        return $this->view->render($response, $template);
+        $errorRenderer = new PhpRenderer(__DIR__ . '/../../templates/errors');
+
+        return $errorRenderer->render($response, $template);
     }
 }

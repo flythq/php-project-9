@@ -2,7 +2,7 @@
 
 namespace Hexlet\Code\Support;
 
-class Text
+class StringUtils
 {
     public static function preview(?string $text, int $limit = 200): ?string
     {

@@ -3,24 +3,49 @@
 namespace Hexlet\Code\Support;
 
 use PDO;
+use RuntimeException;
 
-class UrlCheck
+class UrlCheckRepository
 {
-    public static function getByUrlId(PDO $conn, int $urlId): array
+    private PDO $conn;
+
+    public function __construct(PDO $conn)
+    {
+        $this->conn = $conn;
+    }
+
+    public function getByUrlId(int $urlId): array
     {
         $sql = "SELECT *
                 FROM url_checks
                 WHERE url_id = ?
                 ORDER BY id DESC";
 
-        $stmt = $conn->prepare($sql);
+        $stmt = $this->conn->prepare($sql);
         $stmt->execute([$urlId]);
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public static function create(
-        PDO $conn,
+    public function getLastChecks(): array
+    {
+        $sql = "SELECT DISTINCT ON (url_id)
+                url_id,
+                status_code,
+                created_at
+                FROM url_checks
+                ORDER BY url_id, created_at DESC";
+
+        $stmt = $this->conn->query($sql);
+
+        if ($stmt === false) {
+            throw new RuntimeException('Failed to prepare SQL');
+        }
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function create(
         int $urlId,
         int $statusCode,
         ?string $h1,
@@ -47,7 +72,7 @@ class UrlCheck
                     :createdAt
                 )";
 
-        $stmt = $conn->prepare($sql);
+        $stmt = $this->conn->prepare($sql);
 
         $stmt->execute([
             'urlId' => $urlId,

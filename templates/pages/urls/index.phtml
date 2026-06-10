@@ -1,6 +1,4 @@
-<?php include  __DIR__ . '/header.phtml' ?>
-
-    <main class="flex-grow-1">
+  <main class="flex-grow-1">
         <div class="container-lg mt-3">
             <h1>Сайты</h1>
             <div class="table-responsive">
@@ -14,12 +12,13 @@
                     </tr>
                     </thead>
                     <tbody>
-                    <?php foreach ($urlsData as $url): ?>
+                    <?php foreach ($urls as $url): ?>
+                        <?php $check = $checksByUrlId[$url['id']] ?? null; ?>
                         <tr>
                             <td><?= $url['id']?></td>
-                            <td><a href="/urls/<?= $url['id'] ?>"><?= $url['name'] ?></a></td>
-                            <td><?= $url['last_check_at'] ?></td>
-                            <td><?= $url['status_code'] ?></td>
+                            <td><a href="<?=$router->urlFor('urls.show', ['id' => $url['id']])?>"><?= htmlspecialchars($url['name']) ?></a></td>
+                            <td><?= $check['created_at'] ?? '' ?></td>
+                            <td><?= $check['status_code'] ?? ''?></td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>
@@ -28,4 +27,3 @@
         </div>
     </main>
 
-<?php include  __DIR__ . '/footer.phtml' ?>
