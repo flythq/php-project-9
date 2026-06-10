@@ -39,9 +39,9 @@
                 <tr>
                     <td><?= $urlCheck['id'] ?></td>
                     <td><?= $urlCheck['status_code'] ?></td>
-                    <td><?= htmlspecialchars($urlCheck['h1']) ?></td>
-                    <td><?= htmlspecialchars($urlCheck['title']) ?></td>
-                    <td><?= htmlspecialchars($urlCheck['description']) ?></td>
+                    <td><?= htmlspecialchars($urlCheck['h1'] ?? '') ?></td>
+                    <td><?= htmlspecialchars($urlCheck['title']) ?? '' ?></td>
+                    <td><?= htmlspecialchars($urlCheck['description'] ?? '') ?></td>
                     <td><?= $urlCheck['created_at'] ?></td>
                 </tr>
                 <?php endforeach; ?>
