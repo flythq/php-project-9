@@ -124,11 +124,11 @@ $app->post('/urls', function ($request, $response) use ($container) {
 
     if (!$validator->validate()) {
         $errors = $validator->errors('url');
-        $error = $errors[0];
+        //$error = $errors[0];
         return $container->get('renderer')->render(
             $response,
             'pages/index.phtml',
-            ['error' => $error]
+            ['error' => $errors]
         )->withStatus(422);
     }
 
