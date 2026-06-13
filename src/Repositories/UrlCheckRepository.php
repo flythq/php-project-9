@@ -1,6 +1,6 @@
 <?php
 
-namespace Hexlet\Code\Support;
+namespace Hexlet\Code\Repositories;
 
 use PDO;
 use RuntimeException;
@@ -42,7 +42,17 @@ class UrlCheckRepository
             throw new RuntimeException('Failed to prepare SQL');
         }
 
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $checks = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $checksByUrlId = [];
+
+        foreach ($checks as $check) {
+            $checksByUrlId[$check['url_id']] = [
+                'status_code' => $check['status_code'],
+                'created_at' => $check['created_at'],
+            ];
+        }
+
+        return $checksByUrlId;
     }
 
     public function create(

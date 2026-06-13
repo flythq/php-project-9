@@ -2,11 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Hexlet\Code\Support;
+namespace Hexlet\Code\Handlers;
 
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
-use Slim\Exception\HttpNotFoundException;
 use Slim\Handlers\ErrorHandler;
 use Slim\Interfaces\CallableResolverInterface;
 use Slim\Views\PhpRenderer;

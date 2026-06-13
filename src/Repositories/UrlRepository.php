@@ -1,6 +1,6 @@
 <?php
 
-namespace Hexlet\Code\Support;
+namespace Hexlet\Code\Repositories;
 
 use PDO;
 use RuntimeException;

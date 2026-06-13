@@ -1,10 +1,10 @@
 <?php
 
-namespace Hexlet\Code\Support;
+namespace Hexlet\Code;
 
 use PDO;
 
-class Database
+class Connection
 {
     public static function connect(): PDO
     {
